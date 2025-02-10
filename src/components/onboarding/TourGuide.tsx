@@ -10,9 +10,9 @@ export function TourGuide() {
     {
       element: '[data-tour="summary-widgets"]',
       popover: {
-        title: "Panel de Control",
+        title: "Resumen del Dashboard",
         description:
-          "Aquí puedes ver un resumen de tus operaciones actuales, incluyendo envíos activos y valores totales.",
+          "Aquí encontrarás un resumen de todas tus operaciones activas, valores totales y métricas importantes.",
         side: "bottom",
       },
     },

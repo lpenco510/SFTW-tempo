@@ -1,4 +1,5 @@
 import React from "react";
+import { useAuth } from "./auth/AuthProvider";
 import { motion } from "framer-motion";
 import Sidebar from "./dashboard/Sidebar";
 import SummaryWidgets from "./dashboard/SummaryWidgets";
@@ -8,6 +9,7 @@ import QuickActions from "./dashboard/QuickActions";
 import { TourGuide } from "./onboarding/TourGuide";
 
 const Home = () => {
+  const { currentCompany, userSettings } = useAuth();
   return (
     <div className="flex h-screen bg-gray-100">
       <div data-tour="sidebar" className="h-full">
@@ -22,7 +24,10 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <SummaryWidgets />
+            <SummaryWidgets
+              companyId={currentCompany?.id}
+              layout={userSettings?.dashboard_layout?.summaryWidgets}
+            />
           </motion.div>
 
           <motion.div

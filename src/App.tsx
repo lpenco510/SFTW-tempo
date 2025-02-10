@@ -1,6 +1,12 @@
 import { Suspense } from "react";
 import { useRoutes, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/home";
+import ProductosPage from "./components/productos/ProductosPage";
+import ProveedoresPage from "./components/proveedores/ProveedoresPage";
+import RegimenGeneralPage from "./components/comex/RegimenGeneralPage";
+import CourierPage from "./components/comex/CourierPage";
+import ExportacionesPage from "./components/comex/ExportacionesPage";
+import InventarioPage from "./components/analisis/InventarioPage";
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
@@ -39,6 +45,54 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/productos"
+              element={
+                <ProtectedRoute>
+                  <ProductosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/proveedores"
+              element={
+                <ProtectedRoute>
+                  <ProveedoresPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comex/general"
+              element={
+                <ProtectedRoute>
+                  <RegimenGeneralPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comex/courier"
+              element={
+                <ProtectedRoute>
+                  <CourierPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comex/exports"
+              element={
+                <ProtectedRoute>
+                  <ExportacionesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analisis/inventario"
+              element={
+                <ProtectedRoute>
+                  <InventarioPage />
                 </ProtectedRoute>
               }
             />
