@@ -11,11 +11,7 @@ import { TourGuide } from "./onboarding/TourGuide";
 const Home = () => {
   const { currentCompany, userSettings } = useAuth();
   return (
-    <div className="flex h-screen bg-gray-100">
-      <div data-tour="sidebar" className="h-full">
-        <Sidebar />
-      </div>
-
+    <div className="h-screen bg-gray-100">
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <motion.div

@@ -1,57 +1,54 @@
-import * as React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  ArrowDownToLine,
+  ArrowUpToLine,
+  User2,
+  Sun,
+  Moon,
+} from "lucide-react";
+import { Button } from "./button";
+import { useTheme } from "@/lib/theme-provider";
+import { Link } from "react-router-dom";
 
-export interface FloatingDockProps {
-  items: Array<{
-    id: string;
-    label: string;
-    icon: React.ReactNode;
-    onClick?: () => void;
-  }>;
-  className?: string;
-}
-
-export const FloatingDock = ({ items, className }: FloatingDockProps) => {
-  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
+export function FloatingDock() {
+  const { theme, setTheme } = useTheme();
 
   return (
-    <motion.div
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className={cn(
-        "fixed bottom-4 inset-x-0 mx-auto w-fit px-4 py-3",
-        "bg-background/70 backdrop-blur-md rounded-full",
-        "border border-border/50 shadow-lg",
-        "flex items-center gap-4",
-        className,
-      )}
-    >
-      {items.map((item, idx) => (
-        <motion.button
-          key={item.id}
-          className="relative p-3 rounded-full hover:bg-accent transition-colors"
-          onHoverStart={() => setHoveredIndex(idx)}
-          onHoverEnd={() => setHoveredIndex(null)}
-          onClick={item.onClick}
-        >
-          <span className="relative z-10 text-muted-foreground">
-            {item.icon}
-          </span>
-          <AnimatePresence>
-            {hoveredIndex === idx && (
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: -30 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-accent text-accent-foreground text-sm rounded whitespace-nowrap"
-              >
-                {item.label}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
-      ))}
-    </motion.div>
+    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 rounded-full shadow-lg border flex items-center gap-2 z-50">
+      <Link to="/">
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <LayoutDashboard className="h-5 w-5" />
+        </Button>
+      </Link>
+
+      <Link to="/comex/general">
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <ArrowDownToLine className="h-5 w-5" />
+        </Button>
+      </Link>
+
+      <Link to="/comex/exports">
+        <Button variant="ghost" size="icon" className="rounded-full">
+          <ArrowUpToLine className="h-5 w-5" />
+        </Button>
+      </Link>
+
+      <Button variant="ghost" size="icon" className="rounded-full">
+        <User2 className="h-5 w-5" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="rounded-full"
+        onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      >
+        {theme === "light" ? (
+          <Sun className="h-5 w-5" />
+        ) : (
+          <Moon className="h-5 w-5" />
+        )}
+      </Button>
+    </div>
   );
-};
+}

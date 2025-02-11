@@ -1,5 +1,11 @@
 import { Suspense } from "react";
 import { useRoutes, Routes, Route, Navigate } from "react-router-dom";
+import MainLayout from "./components/layouts/MainLayout";
+import AyudaPage from "./components/ayuda/AyudaPage";
+import FeedbackPage from "./components/feedback/FeedbackPage";
+import ConfiguracionPage from "./components/configuracion/ConfiguracionPage";
+import LiquidacionIVAPage from "./components/analisis/LiquidacionIVAPage";
+import AnalisisPage from "./components/analisis/AnalisisPage";
 import Home from "./components/home";
 import ProductosPage from "./components/productos/ProductosPage";
 import ProveedoresPage from "./components/proveedores/ProveedoresPage";
@@ -44,7 +50,9 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Home />
+                  <MainLayout>
+                    <Home />
+                  </MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -52,7 +60,9 @@ function App() {
               path="/productos"
               element={
                 <ProtectedRoute>
-                  <ProductosPage />
+                  <MainLayout>
+                    <ProductosPage />
+                  </MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -60,7 +70,9 @@ function App() {
               path="/proveedores"
               element={
                 <ProtectedRoute>
-                  <ProveedoresPage />
+                  <MainLayout>
+                    <ProveedoresPage />
+                  </MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -68,7 +80,9 @@ function App() {
               path="/comex/general"
               element={
                 <ProtectedRoute>
-                  <RegimenGeneralPage />
+                  <MainLayout>
+                    <RegimenGeneralPage />
+                  </MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -76,7 +90,9 @@ function App() {
               path="/comex/courier"
               element={
                 <ProtectedRoute>
-                  <CourierPage />
+                  <MainLayout>
+                    <CourierPage />
+                  </MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -84,7 +100,9 @@ function App() {
               path="/comex/exports"
               element={
                 <ProtectedRoute>
-                  <ExportacionesPage />
+                  <MainLayout>
+                    <ExportacionesPage />
+                  </MainLayout>
                 </ProtectedRoute>
               }
             />
@@ -92,7 +110,59 @@ function App() {
               path="/analisis/inventario"
               element={
                 <ProtectedRoute>
-                  <InventarioPage />
+                  <MainLayout>
+                    <InventarioPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analisis/iva"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <LiquidacionIVAPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analisis/reportes"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <AnalisisPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ayuda"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <AyudaPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/feedback"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <FeedbackPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/configuracion"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ConfiguracionPage />
+                  </MainLayout>
                 </ProtectedRoute>
               }
             />
