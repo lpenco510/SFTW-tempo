@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { signOut } from "@/lib/auth";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import {
   LayoutDashboard,
   Package,
@@ -19,7 +19,8 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 
 interface SidebarProps {
   className?: string;
@@ -27,10 +28,7 @@ interface SidebarProps {
 
 const Sidebar = ({ className = "" }: SidebarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeGroup, setActiveGroup] = useState<string | null>(null);
-
-  const handleMouseEnter = () => setIsExpanded(true);
-  const handleMouseLeave = () => setIsExpanded(false);
+  const { settings, loading } = useCompanySettings();
 
   const menuGroups = [
     {
@@ -78,79 +76,96 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
     }
   };
 
-  const toggleSidebar = () => {
-    setIsExpanded(!isExpanded);
-    setActiveGroup(null);
-  };
-
   return (
     <motion.div
       className={cn(
-        "flex flex-col h-screen border-r bg-background relative",
-        className,
+        "flex flex-col h-screen border-r bg-background relative group",
+        className
       )}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      initial={false}
-      animate={{
-        width: isExpanded ? 280 : 80,
-      }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => setIsExpanded(false)}
+      animate={{ width: isExpanded ? 280 : 80 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
       {/* Logo Section */}
-      <motion.div
-        className="p-6 border-b flex items-center justify-center"
-        animate={{ opacity: isExpanded ? 1 : 0.5 }}
-      >
-        <h1
-          className={cn(
-            "font-bold transition-all",
-            isExpanded ? "text-2xl" : "text-xl",
+      <div className="h-16 border-b flex items-center px-4">
+        <div className="w-full flex items-center gap-3">
+          {!loading && (
+            <img
+              src={settings.logoUrl}
+              alt={settings.companyName}
+              className={cn(
+                "object-contain transition-all duration-300",
+                isExpanded ? "h-8 w-8" : "h-10 w-10"
+              )}
+            />
           )}
-        >
-          {isExpanded ? "ARUSA Import" : "AI"}
-        </h1>
-      </motion.div>
+          <AnimatePresence mode="wait">
+            {isExpanded && (
+              <motion.span
+                className="font-semibold text-lg truncate"
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: "auto" }}
+                exit={{ opacity: 0, width: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {settings.companyName}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
 
       {/* Main Navigation */}
       <ScrollArea className="flex-1 px-3 py-6">
-        <nav className="space-y-4">
+        <nav className="space-y-6">
           {menuGroups.map((group) => (
             <div key={group.title} className="space-y-1">
-              {isExpanded && (
-                <h2 className="px-4 text-xs font-semibold text-muted-foreground mb-2">
-                  {group.title}
-                </h2>
-              )}
+              <div className="h-5 px-4">
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.h2
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-xs font-semibold text-muted-foreground"
+                    >
+                      {group.title}
+                    </motion.h2>
+                  )}
+                </AnimatePresence>
+              </div>
               {group.items.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
+                <Link
+                  key={item.href}
+                  to={item.href}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 text-sm rounded-lg",
-                    "hover:bg-accent hover:text-accent-foreground transition-all duration-200",
-                    "relative overflow-hidden",
+                    "hover:bg-accent hover:text-accent-foreground transition-colors",
+                    "group relative"
                   )}
-                  onMouseEnter={() => setActiveGroup(group.title)}
-                  onMouseLeave={() => setActiveGroup(null)}
                 >
-                  {item.icon && <item.icon className="w-5 h-5 shrink-0" />}
-                  <motion.span
-                    animate={{ opacity: isExpanded ? 1 : 0 }}
-                    className="truncate"
-                  >
-                    {item.label}
-                  </motion.span>
-                  {!isExpanded && activeGroup === group.title && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="absolute left-16 bg-popover text-popover-foreground px-3 py-2 rounded-md shadow-md whitespace-nowrap z-50"
-                    >
-                      {item.label}
-                    </motion.div>
+                  <item.icon className="w-5 h-5 shrink-0" />
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.span
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="truncate"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                  {!isExpanded && (
+                    <div className="absolute left-full pl-2 ml-1 hidden group-hover:block z-50">
+                      <div className="bg-popover text-popover-foreground px-3 py-2 rounded-md shadow-md whitespace-nowrap">
+                        {item.label}
+                      </div>
+                    </div>
                   )}
-                </a>
+                </Link>
               ))}
             </div>
           ))}
@@ -160,40 +175,59 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       {/* Bottom Navigation */}
       <div className="p-4 border-t space-y-2">
         {bottomMenuItems.map((item) => (
-          <a
-            key={item.label}
-            href={item.href}
+          <Link
+            key={item.href}
+            to={item.href}
             className={cn(
               "flex items-center gap-3 px-3 py-2 text-sm rounded-lg",
-              "hover:bg-accent hover:text-accent-foreground transition-all duration-200",
+              "hover:bg-accent hover:text-accent-foreground transition-colors",
+              "group relative"
             )}
           >
             <item.icon className="w-5 h-5 shrink-0" />
-            <motion.span
-              animate={{ opacity: isExpanded ? 1 : 0 }}
-              className="truncate"
-            >
-              {item.label}
-            </motion.span>
-          </a>
+            <div className="flex-1 overflow-hidden">
+              <AnimatePresence mode="wait">
+                {isExpanded && (
+                  <motion.span
+                    className="block truncate"
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: "auto" }}
+                    exit={{ opacity: 0, width: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {item.label}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </div>
+          </Link>
         ))}
 
-        <Button
-          variant="ghost"
+        <div
           className={cn(
-            "w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50",
-            "mt-4",
+            "flex items-center gap-3 px-3 py-2 text-sm rounded-lg cursor-pointer",
+            "text-red-500 hover:text-red-600 hover:bg-red-50/50 transition-colors",
+            "group relative"
           )}
           onClick={handleLogout}
         >
-          <LogOut className="w-5 h-5 shrink-0 mr-2" />
-          <motion.span
-            animate={{ opacity: isExpanded ? 1 : 0 }}
-            className="truncate"
-          >
-            Cerrar Sesión
-          </motion.span>
-        </Button>
+          <LogOut className="w-5 h-5 shrink-0" />
+          <div className="flex-1 overflow-hidden">
+            <AnimatePresence mode="wait">
+              {isExpanded && (
+                <motion.span
+                  className="block truncate"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  Cerrar Sesión
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
