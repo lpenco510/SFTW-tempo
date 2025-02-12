@@ -17,6 +17,7 @@ import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
 import routes from "tempo-routes";
+import { Toaster } from "@/components/ui/toaster"
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -168,6 +169,7 @@ function App() {
             />
           </Routes>
           {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
+          <Toaster />
         </div>
       </Suspense>
     </AuthProvider>

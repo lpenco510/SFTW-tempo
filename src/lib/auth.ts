@@ -1,5 +1,11 @@
 import { supabase } from "./supabase";
 import { SUBSCRIPTION_TIERS, USER_ROLES } from "./constants";
+import { User } from "@supabase/supabase-js";
+
+type UserWithCustomFields = {
+  role?: string;
+  subscription?: string;
+} & User;
 
 export async function signIn(email: string, password: string) {
   const response = await supabase.auth.signInWithPassword({
@@ -8,7 +14,6 @@ export async function signIn(email: string, password: string) {
   });
 
   if (response.data.user) {
-    // Fetch user profile
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
@@ -16,9 +21,8 @@ export async function signIn(email: string, password: string) {
       .single();
 
     if (profile) {
-      response.data.user.role = profile.role;
-      response.data.user.subscription =
-        profile.subscription || SUBSCRIPTION_TIERS.FREE;
+      (response.data.user as UserWithCustomFields).role = profile.role;
+      (response.data.user as UserWithCustomFields).subscription = profile.subscription || SUBSCRIPTION_TIERS.FREE;
     }
   }
 
@@ -29,54 +33,72 @@ export async function signUp(
   email: string,
   password: string,
   fullName: string,
-  company: string,
+  companyName: string,
+  taxId: string,
+  country: string
 ) {
-  const { data, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName,
-        company: company,
-      },
-    },
-  });
-
-  if (signUpError) {
-    return { error: signUpError };
-  }
-
-  if (!data.user) {
-    return { error: new Error("No user returned after signup") };
-  }
-
-  // Create profile
-  const { error: profileError } = await supabase.from("profiles").insert([
-    {
-      id: data.user.id,
+  try {
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
-      full_name: fullName,
-      company,
-      role: USER_ROLES.VIEWER,
-      subscription: SUBSCRIPTION_TIERS.FREE,
-    },
-  ]);
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
+    });
 
-  if (profileError) {
-    return { error: profileError };
+    if (signUpError) throw signUpError;
+    if (!authData.user) throw new Error("No se pudo crear el usuario");
+
+    const { data: companyData, error: companyError } = await supabase
+      .from("companies")
+      .insert([
+        {
+          name: companyName,
+          tax_id: taxId,
+          country: country,
+          settings: {
+            logo_url: null,
+            direccion: null,
+            telefono: null,
+            sitio_web: null,
+          },
+        },
+      ])
+      .select()
+      .single();
+
+    if (companyError) throw companyError;
+
+    const { error: profileError } = await supabase.from("profiles").insert([
+      {
+        id: authData.user.id,
+        email,
+        full_name: fullName,
+        company_id: companyData.id,
+        role: USER_ROLES.ADMIN,
+        subscription: SUBSCRIPTION_TIERS.FREE,
+      },
+    ]);
+
+    if (profileError) throw profileError;
+
+    return { user: authData.user, error: null };
+  } catch (error) {
+    return {
+      user: null,
+      error: error instanceof Error ? error : new Error("Error en el registro"),
+    };
   }
-
-  return { user: data.user, error: null };
 }
 
 export async function signOut() {
   return await supabase.auth.signOut();
 }
 
-export async function getCurrentUser() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function getCurrentUser(): Promise<UserWithCustomFields | null> {
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data: profile } = await supabase
@@ -86,9 +108,9 @@ export async function getCurrentUser() {
     .single();
 
   if (profile) {
-    user.role = profile.role;
-    user.subscription = profile.subscription || SUBSCRIPTION_TIERS.FREE;
+    (user as UserWithCustomFields).role = profile.role;
+    (user as UserWithCustomFields).subscription = profile.subscription || SUBSCRIPTION_TIERS.FREE;
   }
 
-  return user;
+  return user as UserWithCustomFields;
 }

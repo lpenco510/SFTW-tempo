@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+'use client'
+
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { signOut } from "@/lib/auth";
@@ -28,8 +30,25 @@ interface SidebarProps {
 
 const Sidebar = ({ className = "" }: SidebarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { settings, loading } = useCompanySettings();
+  const { settings, loading, refetch: fetchCompanySettings } = useCompanySettings();
 
+  useEffect(() => {
+    const handleCompanyUpdate = () => {
+      fetchCompanySettings();
+    };
+
+    window.addEventListener('company-updated', handleCompanyUpdate);
+    return () => window.removeEventListener('company-updated', handleCompanyUpdate);
+  }, [fetchCompanySettings]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-20 bg-background border-r animate-pulse">
+        <div className="w-full h-16 bg-gray-200" />
+      </div>
+    );
+  }
+  
   const menuGroups = [
     {
       title: "Principal",
@@ -90,16 +109,15 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       {/* Logo Section */}
       <div className="h-16 border-b flex items-center px-4">
         <div className="w-full flex items-center gap-3">
-          {!loading && (
-            <img
-              src={settings.logoUrl}
-              alt={settings.companyName}
-              className={cn(
-                "object-contain transition-all duration-300",
-                isExpanded ? "h-8 w-8" : "h-10 w-10"
-              )}
-            />
-          )}
+          <img
+
+            src={`${settings?.settings?.logo_url || '/default-logo.png'}?v=${Date.now()}`}
+            alt={settings?.name || "Logo"}
+            className={cn(
+              "object-contain transition-all duration-300",
+              isExpanded ? "h-8 w-8" : "h-10 w-10"
+            )}
+          />
           <AnimatePresence mode="wait">
             {isExpanded && (
               <motion.span
@@ -109,7 +127,7 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                {settings.companyName}
+                {settings?.name || "IT CARGO"}
               </motion.span>
             )}
           </AnimatePresence>
