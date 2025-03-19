@@ -4,15 +4,18 @@ import MainLayout from "./components/layouts/MainLayout";
 import AyudaPage from "./components/ayuda/AyudaPage";
 import FeedbackPage from "./components/feedback/FeedbackPage";
 import ConfiguracionPage from "./components/configuracion/ConfiguracionPage";
-import LiquidacionIVAPage from "./components/analisis/LiquidacionIVAPage";
-import AnalisisPage from "./components/analisis/AnalisisPage";
+import LiquidacionIVAPage from "./components/finanzas/LiquidacionIVAPage";
+import AnalisisPage from "./components/finanzas/AnalisisPage";
+import ReportesPage from "./components/finanzas/ReportesPage";
 import Home from "./components/home";
 import ProductosPage from "./components/productos/ProductosPage";
-import ProveedoresPage from "./components/proveedores/ProveedoresPage";
 import RegimenGeneralPage from "./components/comex/RegimenGeneralPage";
 import CourierPage from "./components/comex/CourierPage";
 import ExportacionesPage from "./components/comex/ExportacionesPage";
-import InventarioPage from "./components/analisis/InventarioPage";
+import AduanasPage from "./components/comex/AduanasPage";
+import TrackingPage from "./components/comex/TrackingPage";
+import TarifasPage from "./components/comex/TarifasPage";
+import InventarioPage from "./components/inventario/InventarioPage";
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
 import { AuthProvider, useAuth } from "./components/auth/AuthProvider";
@@ -68,16 +71,6 @@ function App() {
               }
             />
             <Route
-              path="/proveedores"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <ProveedoresPage />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/comex/general"
               element={
                 <ProtectedRoute>
@@ -108,17 +101,37 @@ function App() {
               }
             />
             <Route
-              path="/analisis/inventario"
+              path="/comex/aduanas"
               element={
                 <ProtectedRoute>
                   <MainLayout>
-                    <InventarioPage />
+                    <AduanasPage />
                   </MainLayout>
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/analisis/iva"
+              path="/comex/tracking"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <TrackingPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comex/tarifas"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <TarifasPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finanzas/iva"
               element={
                 <ProtectedRoute>
                   <MainLayout>
@@ -128,11 +141,31 @@ function App() {
               }
             />
             <Route
-              path="/analisis/reportes"
+              path="/finanzas/analisis"
               element={
                 <ProtectedRoute>
                   <MainLayout>
                     <AnalisisPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/finanzas/reportes"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <ReportesPage />
+                  </MainLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventario"
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <InventarioPage />
                   </MainLayout>
                 </ProtectedRoute>
               }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { driver } from "driver.js";
+import { driver, Side } from "driver.js";
 import "driver.js/dist/driver.css";
 import { Button } from "@/components/ui/button";
 
@@ -13,7 +13,7 @@ export function TourGuide() {
         title: "Resumen del Dashboard",
         description:
           "Aquí encontrarás un resumen de todas tus operaciones activas, valores totales y métricas importantes.",
-        side: "bottom",
+        side: "bottom" as Side,
       },
     },
     {
@@ -22,7 +22,7 @@ export function TourGuide() {
         title: "Acciones Rápidas",
         description:
           "Inicia nuevas importaciones o exportaciones rápidamente desde aquí.",
-        side: "bottom",
+        side: "bottom" as Side,
       },
     },
     {
@@ -31,7 +31,7 @@ export function TourGuide() {
         title: "Gráficos de Tendencias",
         description:
           "Visualiza las tendencias de tus operaciones de importación y exportación.",
-        side: "top",
+        side: "top" as Side,
       },
     },
     {
@@ -40,7 +40,7 @@ export function TourGuide() {
         title: "Tabla de Actividades",
         description:
           "Revisa todas tus operaciones recientes y su estado actual.",
-        side: "top",
+        side: "top" as Side,
       },
     },
     {
@@ -49,7 +49,7 @@ export function TourGuide() {
         title: "Navegación Principal",
         description:
           "Accede a todas las funciones del sistema desde este menú.",
-        side: "right",
+        side: "right" as Side,
       },
     },
   ];

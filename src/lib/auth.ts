@@ -7,6 +7,19 @@ type UserWithCustomFields = {
   subscription?: string;
 } & User;
 
+// Extender el tipo de perfil para incluir la propiedad subscription
+type ExtendedProfile = {
+  id: string;
+  role: "operator" | "admin" | "manager" | "viewer";
+  subscription?: string;
+  // Otras propiedades del perfil...
+  company: string;
+  created_at: string;
+  email: string;
+  full_name: string;
+  updated_at: string;
+};
+
 export async function signIn(email: string, password: string) {
   const response = await supabase.auth.signInWithPassword({
     email,
@@ -21,8 +34,9 @@ export async function signIn(email: string, password: string) {
       .single();
 
     if (profile) {
-      (response.data.user as UserWithCustomFields).role = profile.role;
-      (response.data.user as UserWithCustomFields).subscription = profile.subscription || SUBSCRIPTION_TIERS.FREE;
+      const extendedProfile = profile as ExtendedProfile;
+      (response.data.user as UserWithCustomFields).role = extendedProfile.role;
+      (response.data.user as UserWithCustomFields).subscription = extendedProfile.subscription || SUBSCRIPTION_TIERS.FREE;
     }
   }
 
@@ -108,8 +122,9 @@ export async function getCurrentUser(): Promise<UserWithCustomFields | null> {
     .single();
 
   if (profile) {
-    (user as UserWithCustomFields).role = profile.role;
-    (user as UserWithCustomFields).subscription = profile.subscription || SUBSCRIPTION_TIERS.FREE;
+    const extendedProfile = profile as ExtendedProfile;
+    (user as UserWithCustomFields).role = extendedProfile.role;
+    (user as UserWithCustomFields).subscription = extendedProfile.subscription || SUBSCRIPTION_TIERS.FREE;
   }
 
   return user as UserWithCustomFields;

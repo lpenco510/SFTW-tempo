@@ -1,6 +1,6 @@
 import React from "react";
 import Sidebar from "../dashboard/Sidebar";
-import { FloatingDock } from "../ui/floating-dock";
+import { FloatingDock } from "@/components/ui/floating-dock";
 
 interface MainLayoutProps {
   children: React.ReactNode;

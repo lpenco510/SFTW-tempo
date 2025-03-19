@@ -6,12 +6,11 @@ import SummaryWidgets from "./dashboard/SummaryWidgets";
 import TrendsCharts from "./dashboard/TrendsCharts";
 import ActivityTable from "./dashboard/ActivityTable";
 import QuickActions from "./dashboard/QuickActions";
-import { TourGuide } from "./onboarding/TourGuide";
 
 const Home = () => {
   const { currentCompany, userSettings } = useAuth();
   return (
-    <div className="h-screen bg-gray-100">
+    <div className="h-screen bg-gray-100 dark:bg-[#161f31]">
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <motion.div
@@ -21,8 +20,7 @@ const Home = () => {
             transition={{ duration: 0.3 }}
           >
             <SummaryWidgets
-              companyId={currentCompany?.id}
-              layout={userSettings?.dashboard_layout?.summaryWidgets}
+              widgets={userSettings?.dashboard_layout?.summaryWidgets}
             />
           </motion.div>
 
@@ -54,8 +52,6 @@ const Home = () => {
           </motion.div>
         </div>
       </main>
-
-      <TourGuide />
     </div>
   );
 };

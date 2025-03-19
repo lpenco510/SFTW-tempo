@@ -84,7 +84,7 @@ export default function RegisterForm() {
             <div className="space-y-2">
               <Input
                 type="text"
-                placeholder="RUT/NIT"
+                placeholder="CUIT/CUIL"
                 value={taxId}
                 onChange={(e) => setTaxId(e.target.value)}
                 required

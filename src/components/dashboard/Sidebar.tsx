@@ -8,18 +8,21 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import {
   LayoutDashboard,
   Package,
-  Users,
+  Boxes,
   Globe,
   Truck,
   Plane,
   Ship,
-  ClipboardList,
+  FileText,
+  Timer,
   Calculator,
   BarChart2,
+  LineChart,
   HelpCircle,
   MessageSquare,
   Settings,
   LogOut,
+  DollarSign,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -54,30 +57,34 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       title: "Principal",
       items: [
         { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-        { icon: Package, label: "Productos", href: "/productos" },
-        { icon: Users, label: "Proveedores", href: "/proveedores" },
       ],
     },
     {
-      title: "COMEX",
+      title: "Gestión de Inventario",
+      items: [
+        { icon: Package, label: "Productos", href: "/productos" },
+        { icon: Boxes, label: "Inventario", href: "/inventario" },
+      ],
+    },
+    {
+      title: "Operaciones COMEX",
       icon: Globe,
       items: [
         { icon: Truck, label: "Régimen General", href: "/comex/general" },
         { icon: Plane, label: "Courier", href: "/comex/courier" },
         { icon: Ship, label: "Exportaciones", href: "/comex/exports" },
+        { icon: FileText, label: "Gestión de Aduanas", href: "/comex/aduanas" },
+        { icon: Timer, label: "Seguimiento de Envíos", href: "/comex/tracking" },
+        { icon: DollarSign, label: "Tarifas y Costos", href: "/comex/tarifas" },
       ],
     },
     {
-      title: "Análisis",
+      title: "Finanzas y Análisis",
       icon: BarChart2,
       items: [
-        {
-          icon: ClipboardList,
-          label: "Inventario",
-          href: "/analisis/inventario",
-        },
-        { icon: Calculator, label: "Liquidación IVA", href: "/analisis/iva" },
-        { icon: BarChart2, label: "Análisis", href: "/analisis/reportes" },
+        { icon: Calculator, label: "Liquidación IVA", href: "/finanzas/iva" },
+        { icon: BarChart2, label: "Análisis", href: "/finanzas/analisis" },
+        { icon: LineChart, label: "Reportes Personalizados", href: "/finanzas/reportes" },
       ],
     },
   ];

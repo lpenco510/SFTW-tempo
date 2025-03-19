@@ -95,27 +95,51 @@ export const useCompanySettings = () => {
         return;
       }
   
-      const { data: profile } = await supabase
+      // Obtener el perfil del usuario
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('company_id')
+        .select('*')
         .eq('id', user.id)
         .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return;
+      }
   
-      if (profile?.company_id) {
+      // Obtener las compañías asociadas al usuario
+      const { data: userCompanies, error: userCompaniesError } = await supabase
+        .from('user_companies')
+        .select('company_id')
+        .eq('user_id', user.id);
+
+      if (userCompaniesError) {
+        console.error('Error fetching user companies:', userCompaniesError);
+        return;
+      }
+
+      if (userCompanies && userCompanies.length > 0) {
+        const companyId = userCompanies[0].company_id;
+        
         const { data: company, error: companyError } = await supabase
           .from('companies')
           .select('*')
-          .eq('id', profile.company_id)
+          .eq('id', companyId)
           .single();
   
         if (companyError) throw companyError;
         
         if (company) {
+          // Asegurarse de que settings sea un objeto
+          const companySettings = typeof company.settings === 'object' && company.settings !== null 
+            ? company.settings 
+            : {};
+            
           const mergedSettings = {
             ...company,
             settings: {
-              ...company.settings,
-              logo_url: company.logo_url || company.settings?.logo_url
+              ...companySettings,
+              logo_url: company.logo_url || (companySettings as any)?.logo_url
             }
           };
           
