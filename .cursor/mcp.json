@@ -1,0 +1,50 @@
+﻿{
+  "mcpServers": {
+    "github": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/github",
+        "--config",
+        "{\"githubPersonalAccessToken\":\"tu_token_de_acceso\"}"
+      ]
+    },
+    "supabase": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-postgres@latest",
+        "postgresql://postgres.bfzwvshxtfryawcvqwyu:MCPCursor123@aws-0-sa-east-1.pooler.supabase.com:5432/postgres",
+        "--poolSize=8",
+        "--timeout=30000",
+        "--allowExecuteSql=true",
+        "--keepAlive=true",
+        "--debug=true",
+        "--verbose=true",
+        "--allowUnsafeQueries=true",
+        "--enableWriteOperations=true",
+        "--readOnly=false"
+      ]
+    },
+    "postgres": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-postgres@latest",
+        "postgresql://postgres.bfzwvshxtfryawcvqwyu:MCPCursor123@aws-0-sa-east-1.pooler.supabase.com:5432/postgres",
+        "--poolSize=5",
+        "--allowUnsafeQueries=true",
+        "--enableWriteOperations=true",
+        "--readOnly=false"
+      ]
+    }
+  }
+}

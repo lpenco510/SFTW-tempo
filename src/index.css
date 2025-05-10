@@ -84,3 +84,49 @@
 .card-hover {
   @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg;
 }
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  @apply inline-block h-12 w-12 border-4 border-slate-300 border-t-blue-600 rounded-full animate-spin;
+}
+
+.loading-overlay {
+  @apply fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50;
+}
+
+.loading-bounce {
+  @apply animate-bounce;
+}
+
+/* Para evitar que elementos permanezcan visibles mientras la página aún está cargando */
+.js-loading * {
+  animation-play-state: paused !important;
+  transition: none !important;
+}
+
+/* Mejorar transiciones */
+.page-transition {
+  @apply transition-opacity duration-300;
+}
+
+.page-enter {
+  @apply opacity-0;
+}
+
+.page-enter-active {
+  @apply opacity-100;
+}
+
+.page-exit {
+  @apply opacity-100;
+}
+
+.page-exit-active {
+  @apply opacity-0;
+}

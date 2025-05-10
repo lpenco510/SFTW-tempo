@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependency directories
 node_modules
 dist
 dist-ssr
@@ -15,6 +16,7 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -23,9 +25,26 @@ dist-ssr
 *.sln
 *.sw?
 
-!node_modules/.vite
+# Environment variables
+.env
+.env.*
+!.env.example
 
-**/tempobook/dynamic/
-**/tempobook/storyboards/
+# TypeScript
+*.tsbuildinfo
 
-core
+# Vite build output
+vite.config.ts.timestamp*
+
+# Supabase
+.supabase
+
+# Testing
+coverage
+
+# Production build folders
+/build
+/out
+
+# Cursor specific files
+cursor/settings.json

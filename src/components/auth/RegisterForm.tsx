@@ -2,53 +2,158 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { signUp } from "@/lib/auth";
-import { Link } from "react-router-dom";
+import useAuth from "@/hooks/useAuth";
+import { Link, useNavigate } from "react-router-dom";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+// Lista de países con Argentina primero
+const countries = [
+  "Argentina",
+  "Brasil",
+  "Chile",
+  "Colombia",
+  "Ecuador",
+  "España",
+  "Estados Unidos",
+  "México",
+  "Perú",
+  "Uruguay",
+  "Venezuela",
+  // Resto de países en orden alfabético
+  "Afganistán",
+  "Albania",
+  "Alemania",
+  "Andorra",
+  // ... (más países)
+];
+
+// Lista de industrias comunes
+const industries = [
+  "Agricultura y ganadería",
+  "Alimentación y bebidas",
+  "Automotriz",
+  "Comercio minorista",
+  "Construcción",
+  "Educación",
+  "Energía",
+  "Farmacéutica",
+  "Finanzas y seguros",
+  "Logística y transporte",
+  "Manufactura",
+  "Minería",
+  "Salud",
+  "Servicios profesionales",
+  "Tecnología",
+  "Telecomunicaciones",
+  "Textil y moda",
+  "Turismo y hostelería",
+  "Otro"
+];
 
 export default function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [company, setCompany] = useState("");
-  const [taxId, setTaxId] = useState("");
-  const [country, setCountry] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [nombreEmpresa, setNombreEmpresa] = useState("");
+  const [identificadorFiscal, setIdentificadorFiscal] = useState("");
+  const [isFormLoading, setIsFormLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const navigate = useNavigate();
+  const { signUp, loading: authLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsFormLoading(true);
     setError("");
 
+    // Validaciones básicas
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      setIsFormLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      setIsFormLoading(false);
+      return;
+    }
+
     try {
-      const { error, user } = await signUp(email, password, fullName, company, taxId, country);
+      const { user, error } = await signUp(
+        email,
+        password,
+        nombreEmpresa,
+        identificadorFiscal
+      );
+
       if (error) {
-        setError(error.message);
+        console.error("Error en registro:", error);
+        setError(error.message || "Error en el registro");
+      } else if (user) {
+        // Registro exitoso, mostrar mensaje y redirigir después de un tiempo
+        setRegistrationSuccess(true);
+        setTimeout(() => {
+          navigate("/login", { 
+            state: { verification: true },
+            replace: true 
+          });
+        }, 5000);
       } else {
-        setSuccess(true);
+        setError("No se pudo completar el registro");
       }
     } catch (err) {
-      setError("Ocurrió un error inesperado");
+      console.error("Error inesperado en registro:", err);
+      setError("Ha ocurrido un error inesperado");
     } finally {
-      setLoading(false);
+      setIsFormLoading(false);
     }
   };
 
-  if (success) {
+  // Estado de carga global
+  const isLoading = isFormLoading || authLoading;
+
+  // Si el registro fue exitoso, mostrar mensaje de éxito
+  if (registrationSuccess) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Card className="w-[350px]">
+        <Card className="w-[400px]">
           <CardHeader>
-            <CardTitle>Registro Exitoso</CardTitle>
+            <CardTitle className="text-center text-green-600">¡Registro Exitoso!</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Por favor, revisa tu email para confirmar tu cuenta.
-            </p>
-            <Button asChild className="w-full">
-              <Link to="/login">Ir al Login</Link>
-            </Button>
+          <CardContent>
+            <div className="text-center mb-6">
+              <div className="flex justify-center mb-4">
+                <div className="rounded-full bg-green-100 p-3">
+                  <svg
+                    className="h-8 w-8 text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-lg font-medium mb-2">
+                Tu cuenta ha sido creada correctamente
+              </p>
+              <p className="text-gray-500 mb-4">
+                Hemos enviado un correo de verificación a <span className="font-medium">{email}</span>.
+                Por favor, revisa tu bandeja de entrada y confirma tu correo electrónico para poder iniciar sesión.
+              </p>
+              <p className="text-sm text-gray-400">
+                Serás redirigido a la página de inicio de sesión en unos segundos...
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -57,48 +162,22 @@ export default function RegisterForm() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <Card className="w-[350px]">
+      <Card className="w-[400px]">
         <CardHeader>
-          <CardTitle>Registro</CardTitle>
+          <div className="flex flex-col items-center mb-4">
+            <img src="/IT CARGO - GLOBAL - toditos-15.png" alt="IT CARGO" className="h-16 mb-2" />
+            <CardTitle>Crear Cuenta</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="Nombre Completo"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="Nombre de la Empresa"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="CUIT/CUIL"
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                type="text"
-                placeholder="País"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                required
-              />
-            </div>
             <div className="space-y-2">
               <Input
                 type="email"
@@ -106,6 +185,7 @@ export default function RegisterForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -115,12 +195,51 @@ export default function RegisterForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Registrando..." : "Registrarse"}
+            <div className="space-y-2">
+              <Input
+                type="password"
+                placeholder="Confirmar Contraseña"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Nombre de la Empresa"
+                value={nombreEmpresa}
+                onChange={(e) => setNombreEmpresa(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Identificador Fiscal (RUT/NIT)"
+                value={identificadorFiscal}
+                onChange={(e) => setIdentificadorFiscal(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+            
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                "Registrarse"
+              )}
             </Button>
+            
             <div className="text-center text-sm text-muted-foreground">
               ¿Ya tienes una cuenta?{" "}
               <Link to="/login" className="text-primary hover:underline">

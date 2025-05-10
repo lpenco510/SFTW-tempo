@@ -1,279 +1,251 @@
 'use client'
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { useAuth } from './useAuth';
 
-interface CompanySettings {
-  id: string;
-  name: string;
-  tax_id: string;
-  country: string;
-  settings: {
-    logo_url?: string;
-    direccion?: string;
-    telefono?: string;
-    sitio_web?: string;
-  };
-  logo_url?: string;
+// Type definitions
+export interface CompanySettings {
+  id?: string;
+  name?: string;
+  nombre_empresa?: string;
+  tax_id?: string;
   direccion?: string;
   telefono?: string;
   sitio_web?: string;
-  nombre_empresa?: string;
+  logo_url?: string;
   rut?: string;
+  country?: string;
+  settings?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export const useCompanySettings = () => {
-  const defaultSettings: CompanySettings = {
-    id: '',
-    name: "",
-    tax_id: '',
-    country: '',
-    settings: {
-      logo_url: "/arusa-logo.webp",
-    }
-  };
-
-  const [settings, setSettings] = useState<CompanySettings>(defaultSettings);
-  const [loading, setLoading] = useState(true);
+/**
+ * Hook for managing company settings
+ */
+export function useCompanySettings() {
+  const { user, loading: isAuthLoading } = useAuth();
+  const [settings, setSettings] = useState<CompanySettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [logoVersion, setLogoVersion] = useState(Date.now());
 
-  const optimizeImage = async (file: File): Promise<File> => {
-    const image = new Image();
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    const blob = URL.createObjectURL(file);
-    
-    return new Promise((resolve, reject) => {
-      image.onload = () => {
-        const maxWidth = 1000;
-        const maxHeight = 1000;
-        
-        let width = image.width;
-        let height = image.height;
-        
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        ctx?.drawImage(image, 0, 0, width, height);
-        
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error('Error al optimizar la imagen'));
+  // Normalize company data to ensure consistent structure
+  const normalizeCompanyData = useCallback((data: any): CompanySettings => {
+    return {
+      id: data?.id || '',
+      name: data?.name || '',
+      nombre_empresa: data?.nombre_empresa || data?.name || '',
+      tax_id: data?.tax_id || data?.rut || '',
+      rut: data?.rut || data?.tax_id || '',
+      direccion: data?.direccion || (data?.settings?.direccion) || '',
+      telefono: data?.telefono || (data?.settings?.telefono) || '',
+      sitio_web: data?.sitio_web || (data?.settings?.sitio_web) || '',
+      logo_url: data?.logo_url || (data?.settings?.logo_url) || '',
+      country: data?.country || '',
+      settings: data?.settings || {},
+      created_at: data?.created_at || '',
+      updated_at: data?.updated_at || ''
+    };
+  }, []);
+
+  // Fetch company data
+  const fetchCompanyData = useCallback(async () => {
+    if (isAuthLoading) return;
+    if (!user) {
+      setIsLoading(false);
               return;
             }
-            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-          },
-          'image/jpeg',
-          0.8
-        );
-      };
-      
-      image.onerror = () => reject(new Error('Error al cargar la imagen'));
-      image.src = blob;
-    });
-  };
 
-  const fetchCompanySettings = async () => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('Debug: No user found');
+      // If user is in guest mode, return guest company data
+      if (user.isGuest) {
+        const guestCompany = {
+          id: 'guest-company',
+          nombre_empresa: user.nombreEmpresa || 'Empresa de Invitado',
+          tax_id: user.identificadorFiscal || 'GUEST123',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        setSettings(normalizeCompanyData(guestCompany));
+        setIsLoading(false);
         return;
       }
-  
-      // Obtener el perfil del usuario
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
+      
+      // Otherwise fetch from Supabase
+      const companyId = user.companyId;
+      if (!companyId) {
+        throw new Error('ID de empresa no encontrado');
+      }
+
+      const { data, error } = await supabase
+        .from('companies')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', companyId)
         .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        return;
-      }
-  
-      // Obtener las compañías asociadas al usuario
-      const { data: userCompanies, error: userCompaniesError } = await supabase
-        .from('user_companies')
-        .select('company_id')
-        .eq('user_id', user.id);
-
-      if (userCompaniesError) {
-        console.error('Error fetching user companies:', userCompaniesError);
-        return;
-      }
-
-      if (userCompanies && userCompanies.length > 0) {
-        const companyId = userCompanies[0].company_id;
-        
-        const { data: company, error: companyError } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', companyId)
-          .single();
-  
-        if (companyError) throw companyError;
-        
-        if (company) {
-          // Asegurarse de que settings sea un objeto
-          const companySettings = typeof company.settings === 'object' && company.settings !== null 
-            ? company.settings 
-            : {};
-            
-          const mergedSettings = {
-            ...company,
-            settings: {
-              ...companySettings,
-              logo_url: company.logo_url || (companySettings as any)?.logo_url
-            }
-          };
-          
-          setSettings(mergedSettings);
-          setLogoVersion(Date.now());
-        }
-      }
+      if (error) throw error;
+      
+      setSettings(normalizeCompanyData(data));
     } catch (err) {
-      console.error('Debug: Error in fetchCompanySettings:', err);
+      console.error('Error fetching company data:', err);
+      setError(err instanceof Error ? err.message : 'Error al cargar datos de la empresa');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };  
-  
-    const emitCompanyUpdate = () => {
-      window.dispatchEvent(new CustomEvent('company-updated'));
-    };
-    
-    const updateCompanyName = async (newName: string) => {
-      try {
-        if (!settings.id) throw new Error('No hay empresa seleccionada');
+  }, [user, isAuthLoading, normalizeCompanyData]);
 
-        const { error } = await supabase
-          .from('companies')
-          .update({ name: newName })
-          .eq('id', settings.id);
+  // Update company settings
+  const updateCompanySettings = useCallback(async (updatedSettings: Partial<CompanySettings>) => {
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' };
+    }
 
-        if (error) throw error;
+    if (user.isGuest) {
+      toast.error('No se pueden guardar configuraciones en modo invitado');
+      return { success: false, error: 'Funcionalidad no disponible en modo invitado' };
+    }
 
-        // Refresh entire company data
-        await fetchCompanySettings();
-        emitCompanyUpdate();
-      
-        return true;
-      } catch (err) {
-        console.error('Error updating company name:', err);
-        throw err;
-      }
-    };
+    setIsSaving(true);
+    setError(null);
 
-    const updateCompanyLogo = async (file: File) => {
-        try {
-          if (!settings.id) throw new Error('No hay empresa seleccionada');
-      
-          // Use consistent filename for overwriting
-          const fileExt = file.name.split('.').pop();
-          const fileName = `company_${settings.id}.${fileExt}`;
-          
-          const optimizedFile = await optimizeImage(file);
-      
-          // Upload new logo, overwriting any existing file
-          const { error: uploadError } = await supabase.storage
-            .from('company-logos')
-            .upload(fileName, optimizedFile, {
-              cacheControl: '0',
-              upsert: true // Forces overwrite
-            });
-      
-          if (uploadError) throw uploadError;
-      
-          const { data: publicUrl } = supabase.storage
-            .from('company-logos')
-            .getPublicUrl(fileName);
-      
-          // Update company with new logo URL and version
-          const timestamp = Date.now();
-          const { error: updateError } = await supabase
-            .from('companies')
-            .update({ 
-              logo_url: `${publicUrl.publicUrl}?v=${timestamp}`,
-              settings: {
-                ...settings.settings,
-                logo_url: `${publicUrl.publicUrl}?v=${timestamp}`
-              }
-            })
-            .eq('id', settings.id);
-      
-          if (updateError) throw updateError;
-      
-          setLogoVersion(timestamp);
-          await fetchCompanySettings();
-          window.dispatchEvent(new CustomEvent('company-updated'));
-      
-          return publicUrl.publicUrl;
-        } catch (err) {
-          console.error('Error updating company logo:', err);
-          throw err;
-        }
-      };
-      
-  const updateCompanySettings = async (newSettings: Partial<CompanySettings['settings']>) => {
     try {
-      if (!settings.id) throw new Error('No hay empresa seleccionada');
+      const companyId = user.companyId;
+      if (!companyId) {
+        throw new Error('ID de empresa no encontrado');
+      }
 
-      const updatedSettings = {
-        ...settings.settings,
-        ...newSettings
+      // Remove any undefined values and ensure we only use columns that exist in the database
+      const validColumns = [
+        'id', 'name', 'nombre_empresa', 'tax_id', 'direccion', 'telefono', 
+        'sitio_web', 'logo_url', 'country', 'settings', 'created_at', 'updated_at'
+      ];
+      
+      const cleanSettings = Object.fromEntries(
+        Object.entries(updatedSettings)
+          .filter(([key, value]) => value !== undefined && validColumns.includes(key))
+      );
+
+      // Add updated_at timestamp
+      const dataToUpdate = {
+        ...cleanSettings,
+        updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      console.log('Updating company with data:', dataToUpdate);
+
+      const { data, error } = await supabase
         .from('companies')
-        .update({ 
-          settings: updatedSettings,
-          direccion: newSettings.direccion,
-          telefono: newSettings.telefono,
-          sitio_web: newSettings.sitio_web
-        })
-        .eq('id', settings.id);
+        .update(dataToUpdate)
+        .eq('id', companyId)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setSettings(prev => ({
-        ...prev,
-        settings: updatedSettings,
-        ...newSettings
-      }));
+      setSettings(normalizeCompanyData(data));
+      toast.success('Configuración de empresa actualizada');
+      return { success: true, data };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar configuración');
-      throw err;
+      console.error('Error updating company settings:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar configuración';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [user, normalizeCompanyData]);
 
+  // Upload company logo
+  const uploadLogo = useCallback(async (file: File) => {
+    if (!user) {
+      return { success: false, error: 'Usuario no autenticado' };
+    }
+
+    if (user.isGuest) {
+      toast.error('No se pueden guardar archivos en modo invitado');
+      return { success: false, error: 'Funcionalidad no disponible en modo invitado' };
+    }
+
+    try {
+      const companyId = user.companyId;
+      if (!companyId) {
+        throw new Error('ID de empresa no encontrado');
+      }
+
+      // Check file type and size
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExt || !['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) {
+        throw new Error('Formato de archivo no soportado. Use JPG, PNG, GIF o WebP');
+      }
+      
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        throw new Error('El archivo excede el tamaño máximo de 2MB');
+      }
+
+      // Create a unique file name with timestamp to prevent caching issues
+      const timestamp = Date.now();
+      const fileName = `logo_${companyId}_${timestamp}.${fileExt}`;
+      
+      // The bucket "company-logos" exists in your Supabase storage (verified via SQL query)
+      const bucketName = 'company-logos';
+      
+      // Upload to the company-logos bucket
+      const { error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Error uploading to storage:', uploadError);
+        throw new Error(`Error al subir imagen: ${uploadError.message}`);
+      }
+
+      // Get the public URL
+      const { data } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+      const publicUrl = data.publicUrl;
+
+      // Update company settings with the new logo URL
+      console.log('Updating company with logo URL:', publicUrl);
+      const updateResult = await updateCompanySettings({ logo_url: publicUrl });
+      
+      if (!updateResult.success) {
+        throw new Error(`Error al actualizar la configuración: ${updateResult.error}`);
+      }
+      
+      return { success: true, url: publicUrl };
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al subir el logo';
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  }, [user, updateCompanySettings]);
+
+  // Load company data when user changes
   useEffect(() => {
-    fetchCompanySettings();
-  }, []);
+    fetchCompanyData();
+  }, [fetchCompanyData]);
 
   return {
     settings,
-    loading,
+    isLoading,
+    isSaving,
     error,
-    updateCompanyLogo,
-    updateCompanyName,
     updateCompanySettings,
-    refetch: fetchCompanySettings,
-    logoVersion
+    uploadLogo,
+    refreshData: fetchCompanyData
   };
-};
+}
+
+// For backward compatibility
+export default useCompanySettings;

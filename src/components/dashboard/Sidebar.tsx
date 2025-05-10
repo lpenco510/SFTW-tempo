@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { signOut } from "@/lib/auth";
+import { signOut, getCurrentUser, isGuestUser, cleanStorage } from "@/lib/auth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import {
   LayoutDashboard,
@@ -26,6 +26,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
+import { toast } from "@/components/ui/use-toast";
+import useAuth from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SidebarProps {
   className?: string;
@@ -33,18 +36,62 @@ interface SidebarProps {
 
 const Sidebar = ({ className = "" }: SidebarProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { settings, loading, refetch: fetchCompanySettings } = useCompanySettings();
+  const { settings, isLoading, refreshData: fetchCompanySettings } = useCompanySettings();
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestData, setGuestData] = useState({ 
+    name: 'IT CARGO', 
+    logo: '/IT CARGO - GLOBAL - toditos-17.png' 
+  });
+  const [logoKey, setLogoKey] = useState(Date.now()); // Para forzar la recarga de la imagen
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    const handleCompanyUpdate = () => {
-      fetchCompanySettings();
+    const checkGuestStatus = async () => {
+      try {
+        console.log("Sidebar: Verificando estado de usuario invitado");
+        const guestStatus = await isGuestUser();
+        setIsGuest(guestStatus);
+        
+        if (guestStatus) {
+          console.log("Sidebar: Usuario invitado detectado");
+          const user = await getCurrentUser();
+          if (user && user.user_metadata) {
+            setGuestData({
+              name: user.user_metadata.company_name || 'IT CARGO',
+              logo: user.user_metadata.company_logo || '/IT CARGO - GLOBAL - toditos-17.png'
+            });
+            console.log("Sidebar: Datos de invitado cargados:", user.user_metadata);
+          }
+        } else {
+          console.log("Sidebar: Usuario registrado detectado");
+        }
+      } catch (error) {
+        console.error("Error verificando estado de invitado:", error);
+      }
+    };
+    
+    checkGuestStatus();
+  }, []);
+
+  useEffect(() => {
+    const handleCompanyUpdate = (event: Event) => {
+      console.log("Sidebar: Evento de actualización de empresa recibido", 
+        (event as CustomEvent)?.detail);
+      
+      // Forzar actualización de datos y refresco de UI
+      if (!isGuest) {
+        setTimeout(() => {
+          fetchCompanySettings();
+          setLogoKey(Date.now()); // Forzar la recarga de la imagen
+        }, 100);
+      }
     };
 
     window.addEventListener('company-updated', handleCompanyUpdate);
     return () => window.removeEventListener('company-updated', handleCompanyUpdate);
-  }, [fetchCompanySettings]);
+  }, [fetchCompanySettings, isGuest]);
 
-  if (loading) {
+  if (isLoading && !isGuest) {
     return (
       <div className="flex h-screen w-20 bg-background border-r animate-pulse">
         <div className="w-full h-16 bg-gray-200" />
@@ -96,11 +143,41 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
   ];
 
   const handleLogout = async () => {
-    const { error } = await signOut();
-    if (!error) {
+    setIsLoggingOut(true);
+    try {
+      const { error } = await signOut();
+      if (error) {
+        console.error("Error during logout:", error);
+        toast({
+          title: "Error al cerrar sesión",
+          description: "Intente nuevamente o recargue la página",
+          variant: "destructive"
+        });
+        
+        // Try forceful cleanup if signOut failed
+        cleanStorage();
+      }
+      
+      // Add a small delay to ensure all cleanup is completed
+      await new Promise(resolve => setTimeout(resolve, 500));
       window.location.href = "/login";
+    } catch (e) {
+      console.error("Exception during logout:", e);
+      // Fallback - force reload to login page
+      window.location.href = "/login?forceClear=true";
+    } finally {
+      setIsLoggingOut(false);
     }
   };
+
+  // Logo Section
+  const logoUrl = isGuest 
+    ? guestData.logo 
+    : (settings?.logo_url || '/default-logo.png');
+    
+  const companyName = isGuest
+    ? guestData.name
+    : (settings?.name || settings?.nombre_empresa || "IT CARGO");
 
   return (
     <motion.div
@@ -117,9 +194,8 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
       <div className="h-16 border-b flex items-center px-4">
         <div className="w-full flex items-center gap-3">
           <img
-
-            src={`${settings?.settings?.logo_url || '/default-logo.png'}?v=${Date.now()}`}
-            alt={settings?.name || "Logo"}
+            src={`${logoUrl}?v=${logoKey}`}
+            alt={companyName}
             className={cn(
               "object-contain transition-all duration-300",
               isExpanded ? "h-8 w-8" : "h-10 w-10"
@@ -133,8 +209,12 @@ const Sidebar = ({ className = "" }: SidebarProps) => {
                 animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.3 }}
+                style={isGuest ? { 
+                  fontFamily: "'Helvetica Now Display', 'Helvetica Neue', Helvetica, Arial, sans-serif",
+                  fontWeight: 800
+                } : {}}
               >
-                {settings?.name || "IT CARGO"}
+                {companyName}
               </motion.span>
             )}
           </AnimatePresence>
