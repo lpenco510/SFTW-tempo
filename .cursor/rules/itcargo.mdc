@@ -1,0 +1,91 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+name: ITCARGO_Project_Foundations
+description: Core development and strategic guidelines for the IT CARGO platform.
+globs: ["**/*.{ts,tsx,js,jsx,md,sql}"]
+alwaysApply: true
+---
+
+# IT CARGO - Project Development Guidelines
+
+## I. Core Principles & Strategy (Commercial Alignment)
+
+1.  **Client-Centric Value First**:
+    *   All features must demonstrably solve a problem or create value for ITC's clients (importers/exporters).
+    *   Prioritize features that enhance the "Basic" plan to solidify client engagement post-first-operation.
+    *   Clearly differentiate "Basic", "Pro", and "Enterprise" features. Upselling should be natural, driven by client needs met by higher tiers.
+2.  **ITC Operational Efficiency**:
+    *   Internal tools (like pre-alert management) should simplify ITC's workflow and improve client service.
+    *   Automate ITC admin tasks where feasible to support scalability.
+3.  **Trust & Security as Foundation**:
+    *   Adhere strictly to Supabase security best practices (RLS, column privileges, secure functions).
+    *   Data privacy for each client company is paramount.
+    *   Ensure CUIT/CUIL and other sensitive data is handled with care.
+4.  **Iterative Development & Feedback**:
+    *   Favor Minimum Viable Products (MVPs) for new large features (e.g., Marketplace, Pre-alerts) to gather feedback quickly.
+    *   Use `docs/FUTURO/` for structured brainstorming of next iterations.
+
+## II. Technical Excellence & Maintainability
+
+1.  **Supabase Best Practices**:
+    *   **RLS by Default**: All tables with client-specific data MUST have Row Level Security policies enabled. Policies should generally key off `company_id` linked to the authenticated user (`auth.uid()`).
+    *   **Function Security**: All PostgreSQL functions must use `SET search_path` to mitigate CVE risks. Functions should be `SECURITY DEFINER` only when absolutely necessary and with extreme caution.
+    *   **Migrations**: Database schema changes should be managed via SQL migration files (e.g., using Supabase CLI or a similar approach, to be version controlled). For MCP usage, `mcp_supabase_apply_migration` tool is preferred.
+    *   **Indexing**: Proactively add indexes for columns frequently used in `WHERE` clauses, `JOIN` conditions, or `ORDER BY` clauses, especially on large tables (`shipments`, `profiles`, `marketplace_listings`). Use Supabase Index Advisor if performance issues arise.
+    *   **Data Integrity**: Utilize foreign key constraints, `NOT NULL`, and `CHECK` constraints to maintain data integrity at the database level.
+2.  **React & Frontend Development**:
+    *   **Component Structure**: Follow `src/components/` structure (ui, auth, dashboard, feature-specific).
+    *   **State Management**: Use React Context (`AuthProvider`, etc.) for global/shared state. Local component state for UI-specific concerns.
+    *   **Hooks**: Encapsulate reusable logic and side effects in custom hooks (`src/hooks/`).
+    *   **TypeScript**: Strict typing for all props, state, API responses. Leverage Supabase auto-generated types (`src/types/supabase.ts`). Avoid `any` where possible.
+    *   **Forms**: Use React Hook Form with Zod for validation, as established in `README.md`.
+    *   **Error Handling**: Implement robust error boundaries and user-friendly error messages for API calls and unexpected issues.
+    *   **Performance**: Memoize components (`React.memo`) judiciously. Use lazy loading for route-based components or heavy off-screen components.
+3.  **Code Style & Readability**:
+    *   Follow existing conventions in `docs/CODING_STANDARDS.md` (naming, formatting).
+    *   Write clear, concise comments for complex logic or non-obvious decisions, especially for business rules related to Comex.
+    *   Keep functions and components focused (Single Responsibility Principle). Split if they become too large or complex.
+4.  **API Design (Future - for Pro/Enterprise integrations)**:
+    *   When developing APIs for external integration, follow RESTful principles.
+    *   Use clear versioning (e.g., `/api/v1/...`).
+    *   Implement robust authentication and authorization for API endpoints.
+    *   Provide OpenAPI/Swagger documentation.
+
+## III. Development Process & Collaboration (Refined from our chats)
+
+1.  **"Planner Mode" (Enhanced)**:
+    *   **Context Gathering**: Before planning, explicitly state assumptions about existing system state based on available context (code, docs, DB schema via MCP).
+    *   **Clarifying Questions**: Ask 4-6 *targeted* questions to resolve ambiguities, focusing on business impact, technical constraints, and edge cases related to the new feature or change.
+    *   **Comprehensive Plan**: Draft a step-by-step plan including:
+        *   DB schema changes (new tables, columns, indexes, RLS).
+        *   Backend logic changes (Supabase functions if any).
+        *   Frontend component creation/modification (React components, hooks, services).
+        *   State management updates.
+        *   UI/UX considerations.
+        *   Documentation updates (inline, `README.md`, `docs/FUTURO/`).
+    *   **Approval & Phased Implementation**: Await approval. Implement in logical phases, clearly stating completion and next steps.
+2.  **Documentation Discipline**:
+    *   **`README.md`**: Keep it as the high-level entry point, reflecting the *current* state of the primary user-facing application.
+    *   **`docs/` Subdirectories**:
+        *   `INSTRUCTIONS/`: For operational procedures (e.g., ITC admin tasks, deployment).
+        *   `ARCHITECTURE/`: For high-level design decisions, data models (can link to Supabase schema).
+        *   `FUTURO/`: For brainstorming, V2+ ideas, unconfirmed features.
+    *   **Self-documenting Code**: Strive for clear variable/function names that reduce the need for excessive comments.
+3.  **Change Impact Analysis**:
+    *   Before implementing a code change, briefly state which files/modules will be affected.
+    *   After implementation (especially for `edit_file`), provide a concise summary of the *purpose* of the change and how it contributes to the user story or requirement. (This is part of the "reflect on scalability and maintainability" from your custom rule).
+
+## IV. AI Collaboration (Meta-Rule for Our Interaction)
+
+1.  **Assume Context Retention**: I will assume you (Gemini) retain context from previous turns within the current session, including file contents and strategic decisions.
+2.  **Proactive Problem Solving**: If a user request is vague or has potential hidden complexities, proactively identify them and suggest clarifications or alternative approaches based on senior engineering judgment.
+3.  **Tool Usage & Fallbacks**:
+    *   Prioritize direct MCP tool usage for database interaction.
+    *   If a tool fails or lacks capability (e.g., complex introspection), clearly state the limitation and propose the next best alternative (e.g., providing SQL for manual execution, requesting more info).
+    *   Do not get stuck on a failing tool; pivot quickly.
+4.  **Focus on Quality and Best Practices**: Always aim for solutions that are scalable, maintainable, secure, and align with the project's established stack and coding standards, even if the user's request is for a "quick fix."
+

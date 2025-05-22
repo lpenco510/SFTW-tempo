@@ -1,0 +1,189 @@
+---
+# Specify the following for Cursor rules
+description: Guidelines for writing Postgres SQL
+alwaysApply: false
+---
+# Postgres SQL Style Guide (IT CARGO Project)
+
+## General
+
+- Use **lowercase** for all SQL reserved words (e.g., `select`, `from`, `create table`) and identifiers (table names, column names, function names) to maintain consistency and readability across the IT CARGO project. This aligns with the `supabase/create-migration.mdc` rule.
+- Employ consistent, descriptive identifiers for tables, columns, and other database objects. For IT CARGO, when naming tables/columns related to specific Argentinian regulations or entities (e.g., AFIP related fields), use terminology that is clear and directly maps to the domain concept (e.g., prefer `cuit` over `tax_id_arg` if `cuit` is the universally understood term; `ncm_code` for HS codes).
+- Use white space (spaces, newlines) and indentation to enhance the readability of your SQL code.
+- Store dates and timestamps in ISO 8601 format (`YYYY-MM-DD HH:MM:SS.sssss`) and prefer `TIMESTAMPTZ` (timestamp with time zone) data type, storing values in UTC to ensure consistency across time zones. Use `timezone('utc', now())` for default current timestamps.
+- Include comments for complex logic or non-obvious decisions, using `/* ... */` for block comments and `--` for line comments.
+
+## Naming Conventions
+
+- Avoid SQL reserved words for identifiers. Ensure names are unique and under 63 characters (PostgreSQL limit).
+- Use `snake_case` for tables and columns (e.g., `shipment_items`, `estimated_arrival_date`).
+- Prefer plural names for tables (e.g., `companies`, `shipments`, `products`).
+- Prefer singular names for columns (e.g., `name`, `status`, `reference_number`).
+
+## Tables
+
+- Avoid prefixes like `tbl_` or `table_`.
+- Ensure no table name matches any of its column names.
+- **Primary Keys**: For new tables in IT CARGO, the default primary key should be named `id` and be of type `UUID` with a default value of `uuid_generate_v4()`. Example: `id UUID PRIMARY KEY DEFAULT uuid_generate_v4()`.
+    * Use `BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY` only if specifically justified (e.g., internal lookup tables not directly related to core entities or UUIDs offer no significant advantage).
+- Create all tables in the `public` schema unless a different schema is explicitly justified for organizational or security reasons.
+- Always qualify table names with their schema in SQL queries for clarity and explicitness (e.g., `public.companies`, `auth.users`).
+- Always add a comment to the table using `COMMENT ON TABLE schema_name.table_name IS 'Description of the table and its purpose in the IT CARGO system.';`. The comment can be up to 1024 characters.
+
+## Columns
+
+- Use singular, descriptive names. Avoid overly generic names like `value` or `data` without context; prefer `item_value`, `shipment_data`.
+- For foreign key columns referencing another table, use the singular name of the referenced table followed by the `_id` suffix (e.g., `company_id` referencing `public.companies.id`, `user_id` referencing `auth.users.id`).
+- Use appropriate data types for the data being stored (e.g., `TEXT` for variable-length strings, `NUMERIC` for precise decimal values like currency, `BOOLEAN` for true/false, `JSONB` for structured JSON data).
+
+#### Examples:
+
+```sql
+-- Creating the 'shipments' table for IT CARGO
+CREATE TABLE public.shipments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+  reference_number TEXT NOT NULL UNIQUE,
+  shipment_type TEXT NOT NULL CHECK (shipment_type IN ('import', 'export')),
+  status TEXT DEFAULT 'draft',
+  origin_country_code CHAR(2), -- ISO 3166-1 alpha-2 country code
+  destination_port_code VARCHAR(5), -- e.g., UN/LOCODE
+  estimated_departure_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc', now()),
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc', now())
+);
+
+COMMENT ON TABLE public.shipments IS 'Stores information about import and export shipments managed by IT CARGO clients.';
+COMMENT ON COLUMN public.shipments.ncm_code IS 'Nomenclatura Común del Mercosur (HS Code equivalent for Mercosur region).';
+```
+
+## Queries
+
+- For short queries, keep them on a few lines. As they grow, use newlines and indentation for readability.
+- Add spaces around operators (`=`, `+`, `*`, etc.) and after commas.
+
+Smaller queries:
+
+```sql
+select *
+from public.companies
+where status = 'active';
+
+update public.profiles
+set full_name = 'Nuevo Nombre'
+where id = (select auth.uid());
+```
+
+Larger queries:
+
+```sql
+select
+  s.id,
+  s.reference_number,
+  c.name as company_name,
+  s.status,
+  s.estimated_departure_at
+from
+  public.shipments s
+join
+  public.companies c on s.company_id = c.id
+where
+  s.created_at >= '2024-01-01T00:00:00Z'
+  and s.shipment_type = 'import'
+order by
+  s.created_at desc;
+```
+
+### Joins and Subqueries
+
+- Format joins and subqueries for clarity, aligning them with related SQL clauses.
+- Prefer explicit `INNER JOIN`, `LEFT JOIN`, etc., over implicit comma-joins.
+- Qualify all column names with the table name or alias if multiple tables are involved.
+
+```sql
+select
+  o.id as order_id,
+  o.order_date,
+  c.name as customer_name,
+  sum(oi.quantity * oi.price) as total_order_value
+from
+  public.orders o
+inner join
+  public.customers c on o.customer_id = c.id
+left join
+  public.order_items oi on o.id = oi.order_id
+where
+  o.status = 'completed'
+group by
+  o.id, c.name
+having
+  sum(oi.quantity * oi.price) > 1000;
+```
+
+## Aliases
+
+- Use meaningful aliases that reflect the data or transformation applied.
+- Always include the `AS` keyword for clarity when defining aliases for columns or tables.
+
+```sql
+select
+  count(id) as total_active_shipments,
+  shipment_type
+from
+  public.shipments
+where
+  status = 'active'
+group by
+  shipment_type;
+```
+
+## Complex queries and CTEs (Common Table Expressions)
+
+- If a query becomes very complex with multiple levels of subqueries, prefer using CTEs (`WITH ... AS (...)`) to improve readability and structure.
+- Ensure each CTE is clear, performs a logical step, and is well-commented.
+- Prioritize readability and maintainability in CTE structure.
+
+```sql
+with
+  active_import_shipments as (
+    -- Select active import shipments from the last year for Argentinian companies
+    select
+      s.id as shipment_id,
+      s.company_id,
+      s.reference_number,
+      s.total_value_usd
+    from
+      public.shipments s
+    join
+      public.companies c on s.company_id = c.id
+    where
+      s.shipment_type = 'import'
+      and s.status = 'active'
+      and c.country_code = 'AR' -- Assuming a country_code column in companies
+      and s.created_at >= (timezone('utc', now()) - interval '1 year')
+  ),
+  company_shipment_summary as (
+    -- Aggregate shipment data per company
+    select
+      ais.company_id,
+      count(ais.shipment_id) as number_of_shipments,
+      sum(ais.total_value_usd) as total_value_imported
+    from
+      active_import_shipments ais
+    group by
+      ais.company_id
+  )
+-- Final selection: Company name and their summarized import activity
+select
+  c.name as company_name,
+  css.number_of_shipments,
+  css.total_value_imported
+from
+  company_shipment_summary css
+join
+  public.companies c on css.company_id = c.id
+where
+  css.number_of_shipments > 5 -- Example filter
+order by
+  css.total_value_imported desc;
+```

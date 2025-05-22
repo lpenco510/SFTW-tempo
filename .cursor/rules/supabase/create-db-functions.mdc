@@ -1,0 +1,146 @@
+---
+description: Guidelines for writing Supabase database functions
+globs: 
+alwaysApply: false
+---
+# Database: Create functions
+
+You're a Supabase Postgres expert in writing database functions. Generate **high-quality PostgreSQL functions** that adhere to the following best practices for the IT CARGO project.
+
+## General Guidelines
+
+1. **Default to `SECURITY INVOKER`:**
+
+   - Functions should run with the permissions of the user invoking the function, ensuring safer access control.
+   - Use `SECURITY DEFINER` only when explicitly required and explain the rationale (e.g., for utility functions that need broader access but are carefully designed not to introduce security holes).
+
+2. **Set the `search_path` Configuration Parameter:**
+
+   - Always set `search_path` to an empty string (`set search_path = '';`).
+   - This avoids unexpected behavior and security risks caused by resolving object references in untrusted or unintended schemas.
+   - Use fully qualified names (e.g., `public.table_name`, `auth.users`) for all database objects referenced within the function. For IT CARGO, most custom functions and tables will reside in the `public` schema.
+
+3. **Adhere to SQL Standards and Validation:**
+   - Ensure all queries within the function are valid PostgreSQL SQL queries and compatible with the Supabase environment.
+
+4. **Naming Conventions:**
+   - Use `snake_case` for function names.
+   - For IT CARGO project-specific functions, consider using a prefix like `itc_` (e.g., `public.itc_calculate_customs_duty()`) to distinguish them from built-in functions or those from extensions, especially if the function provides core business logic.
+
+## Best Practices
+
+1. **Minimize Side Effects:**
+
+   - Prefer functions that return results over those that modify data unless they serve a specific purpose (e.g., triggers, data synchronization tasks).
+
+2. **Use Explicit Typing:**
+
+   - Clearly specify input parameter types and function return types. Avoid ambiguous or loosely typed parameters.
+
+3. **Default to Immutable or Stable Functions:**
+
+   - Where possible, declare functions as `IMMUTABLE` (results depend only on input arguments and are always the same for the same inputs) or `STABLE` (results depend only on input arguments and database state but do not modify the database and are consistent within a single scan). Use `VOLATILE` (the default) only if the function modifies data or has side effects that can change per call even with the same arguments (e.g., uses `NOW()` or random numbers directly influencing results).
+
+4. **Language Choice:**
+   - Use `plpgsql` for procedural logic.
+   - Consider `sql` language for simpler functions that involve a single SQL query or a set of non-procedural SQL statements, as it can sometimes be more performant or easier to read.
+
+5. **Triggers (if Applicable):**
+   - If the function is used as a trigger, include a valid `CREATE TRIGGER` statement that attaches the function to the desired table and event (e.g., `BEFORE INSERT`, `AFTER UPDATE`). Ensure the trigger function returns `NEW` for `BEFORE` triggers on INSERT/UPDATE, or `OLD` for `BEFORE` triggers on DELETE, or `NULL` for `AFTER` triggers (though returning `NEW` or `OLD` is also common and harmless for `AFTER` triggers).
+
+## Example Templates
+
+### Simple Function with `SECURITY INVOKER` (PL/pgSQL)
+
+```sql
+create or replace function public.itc_get_greeting(user_name text)
+returns text
+language plpgsql
+security invoker
+set search_path = '' -- Ensures objects are resolved from explicit schemas
+as $$
+begin
+  return 'Hello ' || user_name || ' from IT CARGO!';
+end;
+$$;
+```
+
+### Function with Parameters and Fully Qualified Object Names (PL/pgSQL)
+
+```sql
+create or replace function public.itc_calculate_total_order_value(p_order_id bigint)
+returns numeric
+language plpgsql
+security invoker
+stable -- Assuming order_items doesn't change during the function's execution within a scan
+set search_path = ''
+as $$
+declare
+  v_total_value numeric;
+begin
+  select sum(oi.price * oi.quantity)
+  into v_total_value
+  from public.order_items oi -- Assuming public.order_items table
+  where oi.order_id = p_order_id;
+
+  return v_total_value;
+end;
+$$;
+```
+
+### Function as a Trigger (PL/pgSQL)
+
+```sql
+-- Example: Function to update an 'updated_at' timestamp
+create or replace function public.itc_set_updated_at()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  new.updated_at := timezone('utc', now()); -- Ensure UTC for consistency
+  return new;
+end;
+$$;
+
+-- Example: Attaching the trigger to 'public.shipments' table
+create trigger set_shipments_updated_at
+before update on public.shipments
+for each row
+execute function public.itc_set_updated_at();
+```
+
+### Function with Error Handling (PL/pgSQL)
+
+```sql
+create or replace function public.itc_safe_division(numerator numeric, denominator numeric)
+returns numeric
+language plpgsql
+security invoker
+immutable -- Result only depends on inputs
+set search_path = ''
+as $$
+begin
+  if denominator = 0 then
+    raise exception 'Cannot divide by zero. Denominator was: %', denominator using errcode = '22012'; -- SQLSTATE for division_by_zero
+  end if;
+  return numerator / denominator;
+end;
+$$;
+```
+
+### Immutable Function (SQL Language)
+
+```sql
+-- Example: Concatenate product code and category for a display string
+create or replace function public.itc_format_product_code(product_code text, category_code text)
+returns text
+language sql -- Using SQL language for a simple expression
+security invoker
+immutable -- Result is always the same for the same inputs
+set search_path = ''
+as $$
+  select upper(category_code) || '-' || product_code;
+$$;
+```

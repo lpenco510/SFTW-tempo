@@ -121,8 +121,9 @@ comercio-exterior/
 
 ## Supabase
 
-### Consultas a Base de Datos
+### Consultas a Base de Datos y Migraciones
 
+- **Prioridad de MCP (Model Context Protocol)**: Para todas las modificaciones de esquema de base de datos (migraciones), se DEBE utilizar la herramienta `mcp_supabase_apply_migration`. El contenido SQL para la migración será generado y pasado a esta herramienta. Para consultas directas de datos (DML) o ejecuciones de SQL que no formen parte de una migración de esquema formal, se DEBE utilizar la herramienta `mcp_supabase_execute_sql`. La ejecución manual de archivos `.sql` para cambios de esquema o consultas debe evitarse.
 - Seleccione solo las columnas necesarias para reducir el tamaño de los datos.
 - Utilice joins apropiados en lugar de múltiples consultas cuando sea posible.
 - Implemente paginación para conjuntos de datos grandes como catálogos de productos o historial de operaciones.
@@ -214,7 +215,7 @@ const { data: despachosCompletos } = await supabase
 ### Git
 
 - Use ramas de características descriptivas: `feature/gestion-despacho-importacion`.
-- Haga commits pequeños y descriptivos.
+- Haga commits pequeños y descriptivos. (Si se utiliza MCP para aplicar cambios de esquema directamente, los archivos `.sql` de migración pueden no ser el artefacto principal en el control de versiones para dichos cambios. La descripción del commit debe reflejar la naturaleza del cambio aplicado a través de MCP).
 - Rebase antes de mergear pull requests.
 - Siga [Conventional Commits](https://www.conventionalcommits.org/) para mensajes de commit.
 - Etiquete claramente los cambios relacionados con actualizaciones en normativas aduaneras.
